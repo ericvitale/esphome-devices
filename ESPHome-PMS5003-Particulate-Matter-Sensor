@@ -1,0 +1,86 @@
+#######################################################################################################
+#
+# https://www.pieterbrinkman.com/2021/02/03/build-a-cheap-air-quality-meter-using-esphome-home-assistant-and-a-particulate-matter-sensor/
+#
+# PMS5003 wiring
+# The PMS5003 uses 5V power and 3.3V for control.
+# Connect pin one to the 5v VIN pin on the ESP.
+# Connect Pin 2 to any ground pin.
+# Connect Pin 3 to D3
+# Connect Pin 4 to D6
+# Connect Pin 5 to D7
+#
+# DHT22 wiring
+# Wiring the DHT sensor is straight forward.
+
+# Connect the GND to any free GND pin on the ESP
+# Connect the VSS to any free 3V3 pin on the ESP
+# Connect the DATA to D4 on the ESP
+#
+#######################################################################################################
+
+
+esphome:
+  name: air-quality-sensor
+  friendly_name: air-quality-sensor
+
+esp8266:
+  board: esp01_1m
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "<<<key>>>"
+
+ota:
+  password: "12c8fcd450e666191ef94072fc2db5f7"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Air-Quality-Sensor"
+    password: "<<<fallback_pass>>>"
+
+captive_portal:
+  
+uart:
+  tx_pin: GPIO12
+  rx_pin: GPIO13
+  baud_rate: 9600
+
+sensor:
+  - platform: pmsx003
+    type: PMSX003
+    pm_1_0:
+      name: "Particulate Matter <1.0µm Concentration"
+    pm_2_5:
+      name: "Particulate Matter <2.5µm Concentration"
+    pm_10_0:
+      name: "Particulate Matter <10.0µm Concentration"
+  - platform: dht
+    pin: GPIO2
+    temperature:
+      name: "Air quality meter Temperature"
+    humidity:
+      name: "Air quality meter Humidity"
+    update_interval: 20s
+
+switch:
+  - platform: gpio
+    pin: 
+      number: GPIO0
+    id: pms_set
+    name: "Start measuring"
+  
+interval:
+  - interval: 120s
+    then:
+      - switch.turn_on: pms_set
+      - delay: 20s
+      - switch.turn_off: pms_set
